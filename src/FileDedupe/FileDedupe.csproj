@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <!-- 19041 is the SDK surface WinUI 3 requires; TargetPlatformMinVersion is what
+         actually gates which Windows builds can run it, and 17763 covers Windows 10 1809+. -->
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <RootNamespace>FileDedupe</RootNamespace>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <Platforms>x64;ARM64</Platforms>
+    <RuntimeIdentifiers>win-x64;win-arm64</RuntimeIdentifiers>
+    <UseWinUI>true</UseWinUI>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Unpackaged: runs as a plain .exe with no MSIX install step. -->
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- .NET itself is framework-dependent; the machine supplies the .NET 10 runtime. -->
+    <SelfContained>false</SelfContained>
+    <!--
+      Bundle the Windows App SDK rather than depending on the machine-wide runtime.
+      An unpackaged app otherwise needs the framework, DDLM and Main packages all
+      registered, and a gap in any of them fails at startup with the unhelpful
+      "This application could not be started" dialog (0x80670016). Bundling makes the
+      build xcopy-deployable to any Windows 10 1809+ machine with no prerequisite.
+    -->
+    <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+  </PropertyGroup>
+
+  <!--
+    WinUI needs a RID-specific build: without one, the native pieces
+    (Microsoft.ui.xaml.dll and the unpackaged bootstrapper) are never copied next to
+    the exe and the app dies at startup with "This application could not be started".
+    The RID must track $(Platform), or an ARM64 build fails with NETSDK1032 because
+    the inferred RID and the PlatformTarget disagree. An explicit -r on the command
+    line still wins, since these only fill in a blank value.
+  -->
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == '' And '$(Platform)' == 'ARM64'">
+    <RuntimeIdentifier>win-arm64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(RuntimeIdentifier)' == ''">
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.6.5" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\FileDedupe.Core\FileDedupe.Core.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+</Project>
